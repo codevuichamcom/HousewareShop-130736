@@ -1,11 +1,7 @@
 package com.example.housewareshop.controller;
 
-import com.example.housewareshop.entity.Cart;
-import com.example.housewareshop.entity.Category;
-import com.example.housewareshop.entity.Image;
-import com.example.housewareshop.entity.Product;
-import com.example.housewareshop.repository.CategoryRepository;
-import com.example.housewareshop.repository.ProductRepository;
+import com.example.housewareshop.entity.*;
+import com.example.housewareshop.repository.*;
 import com.example.housewareshop.util.MathFunction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -18,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Controller
@@ -28,6 +26,15 @@ public class mainController {
 
     @Autowired
     CategoryRepository categoryRepository;
+
+    @Autowired
+    ShippingRepository shippingRepository;
+
+    @Autowired
+    OrderRepository orderRepository;
+
+    @Autowired
+    OrderDetailRepository orderDetailRepository;
 
     @GetMapping("/")
     public String index() {
@@ -99,67 +106,69 @@ public class mainController {
         if (listCart == null) {
             listCart = new ArrayList<>();
             listCart.add(cart);
-        }else{
+        } else {
             //có nghĩa là list cart đã tồn tại
 
             //2 khả năng
 
             //kn1: sản phẩm chuẩn bị thêm đã có trên giỏ hàng
             boolean isExist = false;
-            for(Cart C :listCart){
-                if(productId == C.getProductId()){
+            for (Cart C : listCart) {
+                if (productId == C.getProductId()) {
                     //tồn tại sản phẩm đấy trên giỏ hàng rồi
                     isExist = true;
-                    C.setQuantity(C.getQuantity()+1);
+                    C.setQuantity(C.getQuantity() + 1);
                 }
             }
-            if(!isExist){
+            if (!isExist) {
                 listCart.add(cart);
             }
         }
 
-        session.setAttribute("listCart",listCart);
+        session.setAttribute("listCart", listCart);
         return "redirect:/carts";
     }
 
     @GetMapping("/carts")
-    public String getListCart(Model model,HttpSession session) {
+    public String getListCart(Model model, HttpSession session) {
         List<Cart> listCart = (List<Cart>) session.getAttribute("listCart");
-        if(listCart ==null ||listCart.size()==0){
+        if (listCart == null || listCart.size() == 0) {
             return "emptyCart";
         }
         //tính tổng tiền
         double totalMoney = 0;
-        for(Cart c: listCart){
-            totalMoney+=c.getProductPrice()*c.getQuantity();
+        for (Cart c : listCart) {
+            totalMoney += c.getProductPrice() * c.getQuantity();
         }
-        model.addAttribute("listCart",listCart);
+        model.addAttribute("listCart", listCart);
         model.addAttribute("totalMoney", MathFunction.getMoney(totalMoney));
         return "listCart";
     }
+
     @GetMapping("/delete-cart")
-    public String deleteCart(Model model,HttpSession session,@RequestParam(value = "productId",required = false) Long productId) {
+    public String deleteCart(Model model, HttpSession session, @RequestParam(value = "productId", required = false) Long productId) {
         List<Cart> listCart = (List<Cart>) session.getAttribute("listCart");
-        if(productId==null){
-            session.setAttribute("listCart",new ArrayList<Cart>());
-        }else{
-            for(Cart c:listCart){
-                if(c.getProductId()==productId){
+        if (productId == null) {
+            session.setAttribute("listCart", new ArrayList<Cart>());
+        } else {
+            for (Cart c : listCart) {
+                if (c.getProductId() == productId) {
                     listCart.remove(c);
                     break;
                 }
             }
-            session.setAttribute("listCart",listCart);
+            session.setAttribute("listCart", listCart);
         }
         return "redirect:/carts";
     }
+
     @PostMapping("/update-cart")
-    public String updateCart(HttpServletRequest req,HttpSession session) {
+    public String updateCart(HttpServletRequest req, HttpSession session) {
         List<Cart> listCart = (List<Cart>) session.getAttribute("listCart");
         for (int i = 0; i < listCart.size(); i++) {
-            listCart.get(i).setQuantity(Integer.parseInt(req.getParameter("quantity"+i)));
+            listCart.get(i).setQuantity(Integer.parseInt(req.getParameter("quantity" + i)));
         }
-        session.setAttribute("listCart",listCart);
+        session.setAttribute("listCart", listCart);
         return "redirect:/carts";
     }
 
@@ -167,15 +176,15 @@ public class mainController {
     @GetMapping("/checkout")
     public String checkout(Model model, HttpSession session) {
         List<Cart> listCart = (List<Cart>) session.getAttribute("listCart");
-        if(listCart ==null ||listCart.size()==0){
+        if (listCart == null || listCart.size() == 0) {
             return "emptyCart";
         }
         //tính tổng tiền
         double totalMoney = 0;
-        for(Cart c: listCart){
-            totalMoney+=c.getProductPrice()*c.getQuantity();
+        for (Cart c : listCart) {
+            totalMoney += c.getProductPrice() * c.getQuantity();
         }
-        model.addAttribute("listCart",listCart);
+        model.addAttribute("listCart", listCart);
         model.addAttribute("totalMoney", MathFunction.getMoney(totalMoney));
         return "checkout";
     }
@@ -187,20 +196,67 @@ public class mainController {
                                   @RequestParam(name = "note") String note, HttpSession session) {
 
         List<Cart> listCart = (List<Cart>) session.getAttribute("listCart");
-        if(listCart ==null ||listCart.size()==0){
+        if (listCart == null || listCart.size() == 0) {
             return "emptyCart";
         }
         //tính tổng tiền
         double totalMoney = 0;
-        for(Cart c: listCart){
-            totalMoney+=c.getProductPrice()*c.getQuantity();
+        for (Cart c : listCart) {
+            totalMoney += c.getProductPrice() * c.getQuantity();
         }
-        model.addAttribute("listCart",listCart);
+        model.addAttribute("listCart", listCart);
         model.addAttribute("totalMoney", MathFunction.getMoney(totalMoney));
-        model.addAttribute("name",name);
-        model.addAttribute("phone",phone);
-        model.addAttribute("address",address);
-        model.addAttribute("note",note);
+        model.addAttribute("name", name);
+        model.addAttribute("phone", phone);
+        model.addAttribute("address", address);
+        model.addAttribute("note", note);
+        return "prepareShipping";
+    }
+
+    @PostMapping("/prepare-shipping")
+    public String postPrepareShipping(Model model, @RequestParam(name = "name") String name,
+                                      @RequestParam(name = "phone") String phone,
+                                      @RequestParam(name = "address") String address,
+                                      @RequestParam(name = "note") String note, HttpSession session) {
+
+        List<Cart> listCart = (List<Cart>) session.getAttribute("listCart");
+        if (listCart == null || listCart.size() == 0) {
+            return "emptyCart";
+        }
+        //tính tổng tiền
+        double totalMoney = 0;
+        for (Cart c : listCart) {
+            totalMoney += c.getProductPrice() * c.getQuantity();
+        }
+        //lưu database
+        Shipping shipping = new Shipping();
+        shipping.setName(name);
+        shipping.setPhone(phone);
+        shipping.setAddress(address);
+        shipping = shippingRepository.save(shipping);
+
+        Order order = new Order();
+        order.setTotalPrice(totalMoney);
+        order.setNote(note);
+        Date now = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        order.setCreatedDate(java.sql.Date.valueOf(sdf.format(now)));
+        StatusOrder statusOrder = new StatusOrder();
+        statusOrder.setId(1);
+        order.setStatus(statusOrder);
+        order.setShipping(shipping);
+
+        order = orderRepository.save(order);
+
+        for(Cart cart: listCart){
+            OrderDetail orderDetail = new OrderDetail();
+            orderDetail.setOrder(order);
+            orderDetail.setQuantity(cart.getQuantity());
+            orderDetail.setProductName(cart.getProductName());
+            orderDetail.setProductPrice(cart.getProductPrice());
+            orderDetail.setProductImage(cart.getProductImageUrl());
+            orderDetailRepository.save(orderDetail);
+        }
         return "prepareShipping";
     }
 
@@ -209,7 +265,7 @@ public class mainController {
                          @RequestParam(value = "keyword", defaultValue = "") String keyword) {
 
         final int PAGE_SIZE = 20;
-        Page<Product> products = productRepository.search("%"+keyword+"%",PageRequest.of(page-1,PAGE_SIZE));
+        Page<Product> products = productRepository.search("%" + keyword + "%", PageRequest.of(page - 1, PAGE_SIZE));
         List<Category> categories = categoryRepository.findAll();
 
         model.addAttribute("products", products);
