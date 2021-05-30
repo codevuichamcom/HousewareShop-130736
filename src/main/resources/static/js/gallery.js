@@ -17,6 +17,11 @@ function currentSlide(n) {
   showSlides(slideIndex = n);
 }
 
+function submitForm() {
+  alert("aaaaaaaaaaaaaaaaaaaaaaa")
+  const form = document.getElementById('frm_info');
+  form.submit();
+}
 function showSlides(n) {
   var i;
   var slides = document.getElementsByClassName("mySlides");
