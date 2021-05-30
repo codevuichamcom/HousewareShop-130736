@@ -36,6 +36,10 @@ public class mainController {
     @Autowired
     OrderDetailRepository orderDetailRepository;
 
+    @GetMapping("/hello")
+    public String hello(){
+        return "hello";
+    }
     @GetMapping("/")
     public String index() {
         return "home";
